@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Flujo de Trabajo Git Completo</title>
+    <style>
+        body {
+            font-family: 'Courier New', monospace;
+            margin: 0;
+            padding: 0;
+            background: black;
+            color: #00ff00; /* Verde Matrix */
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            text-align: center;
+        }
+        h1 {
+            margin: 20px;
+            font-size: 2.5rem;
+            text-shadow: 0 0 10px #00ff00; /* Efecto de resplandor */
+        }
+        .container {
+            position: relative;
+            width: 80vw;
+            height: 80vh;
+            max-width: 1200px; /* Ancho máximo para pantallas grandes */
+            max-height: 800px; /* Altura máxima para pantallas grandes */
+            background: rgba(0, 0, 0, 0.8);
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+            overflow: hidden;
+        }
+        .tooltip {
+            display: none;
+            position: absolute;
+            background: rgba(0, 0, 0, 0.9);
+            color: #00ff00;
+            padding: 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            max-width: 250px;
+            pointer-events: none;
+            transition: opacity 0.3s;
+            opacity: 0;
+            text-shadow: 0 0 10px #00ff00; /* Efecto de resplandor */
+            box-shadow: 0 0 10px rgba(0, 255, 0, 0.5); /* Efecto de sombra */
+        }
+        .tooltip.visible {
+            display: block;
+            opacity: 1;
+        }
+        .step {
+            cursor: pointer;
+            text-align: center;
+            position: absolute;
+            transition: box-shadow 0.3s, filter 0.3s;
+        }
+        .step:hover {
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+        }
+        .step-circle {
+            fill: #000; /* Fondo negro para el círculo */
+            stroke: #00ff00; /* Verde Matrix */
+            stroke-width: 2;
+        }
+        .step-text {
+            font-size: 36px; /* Tamaño grande para los emojis */
+            text-anchor: middle;
+            fill: #00ff00;
+        }
+        .error-text {
+            font-size: 14px; /* Tamaño de texto para errores */
+            fill: #00ccff; /* Azul claro */
+            font-style: italic;
+            display: none; /* Ocultar texto de error por defecto */
+        }
+        .step-number {
+            font-size: 20px; /* Tamaño para el número */
+            fill: #00ff00;
+            font-weight: bold;
+        }
+        footer {
+            margin: 20px;
+            font-size: 14px;
+            text-align: center;
+        }
+        footer ul {
+            list-style: none;
+            padding: 0;
+        }
+        footer ul li {
+            margin: 5px 0;
+        }
+        footer ul li a {
+            color: #00ff00;
+            text-decoration: none;
+            text-shadow: 0 0 10px #00ff00; /* Efecto de resplandor */
+        }
+        /* Animación de lluvia de código */
+        .rain {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            pointer-events: none;
+            z-index: -1;
+        }
+        .rain div {
+            position: absolute;
+            width: 2px;
+            height: 20px;
+            background: #00ff00;
+            animation: fall linear infinite;
+        }
+        @keyframes fall {
+            0% {
+                transform: translateY(-100%);
+            }
+            100% {
+                transform: translateY(100vh);
+            }
+        }
+        /* Opciones de tema */
+        .theme-select {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            border: 1px solid #00ff00;
+            border-radius: 5px;
+            padding: 10px;
+        }
+        .theme-select label {
+            color: #00ff00;
+            margin-right: 10px;
+        }
+        .theme-select select {
+            background: #000;
+            color: #00ff00;
+            border: 1px solid #00ff00;
+            padding: 5px;
+            border-radius: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="theme-select">
+        <label for="theme">Selecciona el tema:</label>
+        <select id="theme">
+            <option value="matrix">Matrix</option>
+            <option value="mario">Mario Bros</option>
+            <option value="space">Espacio</option>
+        </select>
+    </div>
+    <h1>Flujo de Trabajo Git Completo</h1>
+    <div class="container" id="git-diagram-container"></div>
+    <div id="tooltip" class="tooltip"></div>
+
+    <footer>
+        <p>Recursos adicionales:</p>
+        <ul>
+            <li><a href="https://git-scm.com/book/es/v2" target="_blank">Pro Git - Libro Oficial</a></li>
+            <li><a href="https://github.com/git/git" target="_blank">Repositorio Oficial de Git en GitHub</a></li>
+            <li><a href="https://www.atlassian.com/git/tutorials/learn-git-with-bitbucket-cloud" target="_blank">Tutorial de Git de Atlassian</a></li>
+            <li><a href="https://www.jenkins.io/doc/" target="_blank">Documentación de Jenkins</a></li>
+            <li><a href="https://www.terraform.io/docs" target="_blank">Documentación de Terraform</a></li>
+        </ul>
+    </footer>
+
+    <div class="rain"></div>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script>
+        const svg = d3.select('#git-diagram-container').append('svg')
+            .attr('width', '100%')
+            .attr('height', '100%')
+            .attr('viewBox', '0 0 1800 1000'); // Ajuste del tamaño del área de visualización
+
+        const tooltip = d3.select('#tooltip');
+
+        // Definición de los pasos clave con la tarea inicial
+        const steps = [
+            { id: 'task', emoji: '📝', x: 200, y: 100, command: 'Crea tareas en Jira con códigos, y vincúlalas a los commits.\nEjemplo:\nTAREA-123: Implementar autenticación.', error: 'Las tareas deben estar claramente definidas y asociadas a los commits adecuados. Ejemplo de error: TAREA-999: Sin descripción de tarea.' },
+            { id: 'install', emoji: '💻', x: 200, y: 300, command: 'Instala Git en tu sistema.\nEjemplo:\n- En Windows: Descarga desde https://git-scm.com/download/win\n- En macOS: Usa Homebrew: `brew install git`', error: 'Asegúrate de usar la versión más reciente. Ejemplo de error: Usar una versión antigua que no soporta algunas características.' },
+            { id: 'create_repo', emoji: '📂', x: 200, y: 500, command: 'git init\nCrea un repositorio local.\nEjemplo:\n`git init nombre-repositorio`', error: 'No olvides agregar un archivo README para tu repositorio. Ejemplo de error: Crear un repositorio sin README.' },
+            { id: 'branch', emoji: '🌿', x: 200, y: 700, command: 'git branch NOMBRE\nCrea una nueva rama.\nEjemplo:\n`git branch feature/authentication`', error: 'Asegúrate de nombrar la rama de manera descriptiva. Ejemplo de error: Nombrar la rama "fix" sin especificar el problema.' },
+            { id: 'commit', emoji: '✔️', x: 600, y: 100, command: 'git commit -m "Mensaje del commit"\nRealiza commits con mensajes claros.\nEjemplo:\n`git commit -m "Añadido componente de autenticación"`', error: 'Los mensajes de commit deben ser descriptivos y útiles. Ejemplo de error: Mensajes de commit vagos como "cambios" o "arreglos".' },
+            { id: 'push', emoji: '↗️', x: 600, y: 300, command: 'git push origin NOMBRE-RAMA\nEnvía tus cambios al repositorio remoto.\nEjemplo:\n`git push origin feature/authentication`', error: 'Asegúrate de haber hecho pull primero para evitar conflictos. Ejemplo de error: Hacer push sin haber hecho pull primero.' },
+            { id: 'review', emoji: '👀', x: 600, y: 500, command: 'Revisa y comenta los cambios del Pull Request.\nEjemplo:\n- Asegúrate de que el código sigue las convenciones del proyecto.\n- Verifica la cobertura de pruebas.', error: 'No revisar adecuadamente puede introducir errores en producción. Ejemplo de error: Aprobar un PR sin revisar los cambios detalladamente.' },
+            { id: 'merge', emoji: '🔀', x: 600, y: 700, command: 'Mergea el Pull Request.\nEjemplo:\n- Usa GitHub para hacer merge o `git merge` en línea de comandos.\n- Asegúrate de resolver todos los conflictos antes de hacer merge.', error: 'Resolver conflictos incorrectamente puede introducir errores en el código. Ejemplo de error: Mergear sin resolver todos los conflictos.' },
+            { id: 'tag_release', emoji: '🏷️', x: 1000, y: 100, command: 'Etiqueta la versión de release.\nEjemplo:\n- Usa `git tag -a v1.0 -m "Versión 1.0"`\n- Luego, haz push de la etiqueta: `git push origin v1.0`', error: 'No etiquetar versiones puede dificultar el seguimiento de releases. Ejemplo de error: No usar etiquetas consistentes para releases.' },
+            { id: 'tag_master', emoji: '🏷️', x: 1000, y: 300, command: 'Etiqueta la versión en master.\nEjemplo:\n- Usa `git tag -a v1.0.1 -m "Versión 1.0.1"`\n- Luego, haz push de la etiqueta: `git push origin v1.0.1`', error: 'Etiquetas incorrectas pueden causar confusión sobre el estado del código. Ejemplo de error: Etiquetas inconsistentes en master.' },
+            { id: 'test', emoji: '🧪', x: 1000, y: 500, command: 'Corre pruebas en el entorno de Pruebas.\nEjemplo:\n- Ejecuta `npm test` o `pytest` según tu stack.\n- Asegúrate de que todas las pruebas pasen antes de lanzar.', error: 'No correr todas las pruebas puede llevar a errores en producción. Ejemplo de error: Ejecutar solo pruebas unitarias sin probar integración.' },
+            { id: 'release', emoji: '🚀', x: 1000, y: 700, command: 'Lanza la versión a Producción.\nEjemplo:\n- Usa comandos de despliegue específicos para tu entorno.\n- Verifica que todos los aspectos del release están listos.', error: 'Lanzar sin revisar puede afectar a todos los usuarios. Ejemplo de error: Lanzar con bugs conocidos.' },
+            { id: 'hotfix', emoji: '🔧', x: 1400, y: 100, command: 'Crea un Hotfix para corrección en Producción.\nEjemplo:\n- Usa una rama específica para el hotfix.\n- Realiza pruebas exhaustivas antes del despliegue.', error: 'Hotfixes mal gestionados pueden introducir más errores. Ejemplo de error: Aplicar un hotfix sin pruebas suficientes.' },
+            { id: 'husky', emoji: '🔧', x: 1400, y: 300, command: 'Configura Husky para hooks de Git, incluyendo linting y formateo.\nEjemplo:\n- Instala Husky: `npm install husky --save-dev`\n- Configura hooks en `.huskyrc`.', error: 'Hooks mal configurados pueden permitir commits con errores de estilo. Ejemplo de error: No configurar hooks para linting.' },
+            { id: 'eslint', emoji: '🔍', x: 1400, y: 500, command: 'Configura ESLint para el análisis de código estático.\nEjemplo:\n- Instala ESLint: `npm install eslint --save-dev`\n- Configura `.eslintrc.js` con reglas de tu proyecto.', error: 'No seguir las reglas de linting puede resultar en código inconsistente. Ejemplo de error: No configurar reglas personalizadas para tu proyecto.' },
+            { id: 'sonarlint', emoji: '🔍', x: 1400, y: 700, command: 'Configura SonarLint para la detección de problemas en el código.\nEjemplo:\n- Instala SonarLint: `npm install sonar-lint --save-dev`\n- Configura en el IDE para recibir retroalimentación continua.', error: 'Ignorar problemas detectados por SonarLint puede reducir la calidad del código. Ejemplo de error: No aplicar correcciones sugeridas por SonarLint.' }
+        ];
+
+        // Crear grupos de pasos en el SVG
+        const stepGroups = svg.selectAll('.step')
+            .data(steps)
+            .enter().append('g')
+            .attr('class', 'step')
+            .attr('transform', d => `translate(${d.x}, ${d.y})`)
+            .on('mouseover', (event, d) => {
+                tooltip.style('display', 'block')
+                       .style('left', (event.pageX + 10) + 'px')
+                       .style('top', (event.pageY - 28) + 'px')
+                       .html(`<strong>Comando:</strong><br>${d.command.replace(/\n/g, '<br>')}<br><br><strong>Recomendación:</strong><br>${d.error.replace(/\n/g, '<br>')}`)
+                       .classed('visible', true);
+            })
+            .on('mouseout', () => {
+                tooltip.classed('visible', false);
+            });
+
+        // Añadir círculos, números y texto a cada paso
+        stepGroups.append('circle')
+            .attr('r', 60) // Tamaño del círculo aumentado
+            .attr('class', 'step-circle');
+
+        stepGroups.append('text')
+            .attr('y', -30) // Posición del número
+            .attr('class', 'step-number')
+            .text((d, i) => i + 1); // Numeración de pasos
+
+        stepGroups.append('text')
+            .attr('y', 10)
+            .attr('class', 'step-text')
+            .text(d => d.emoji);
+
+        stepGroups.append('text')
+            .attr('y', 50)
+            .attr('class', 'step-text')
+            .text(d => d.command)
+            .style('display', 'none'); // Ocultar texto de comando por defecto
+
+        stepGroups.append('text')
+            .attr('y', 90)
+            .attr('class', 'error-text')
+            .text(d => d.error || '');
+
+        // Generar lluvia de código
+        const rainContainer = d3.select('.rain');
+        for (let i = 0; i < 100; i++) {
+            rainContainer.append('div')
+                .style('left', Math.random() * 100 + 'vw')
+                .style('animationDuration', (Math.random() * 2 + 1) + 's')
+                .style('animationDelay', (Math.random() * 5) + 's');
+        }
+
+        // Cambiar tema
+        document.getElementById('theme').addEventListener('change', (event) => {
+            const theme = event.target.value;
+            document.body.style.backgroundColor = theme === 'matrix' ? 'black' : (theme === 'mario' ? 'skyblue' : 'darkblue');
+            document.querySelector('.container').style.backgroundColor = theme === 'matrix' ? 'rgba(0, 0, 0, 0.8)' : (theme === 'mario' ? 'rgba(255, 255, 0, 0.8)' : 'rgba(0, 0, 0, 0.7)');
+            document.querySelectorAll('.step-circle').forEach(circle => {
+                circle.style.stroke = theme === 'matrix' ? '#00ff00' : (theme === 'mario' ? '#ff0000' : '#ffffff');
+            });
+            document.querySelectorAll('.step-text').forEach(text => {
+                text.style.fill = theme === 'matrix' ? '#00ff00' : (theme === 'mario' ? '#ff0000' : '#ffffff');
+            });
+        });
+    </script>
+</body>
+</html>
+
